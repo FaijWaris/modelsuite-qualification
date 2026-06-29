@@ -1,4 +1,4 @@
-﻿const Task = require('../models/Task');
+const Task = require('../models/Task');
 
 // @desc  Get all tasks
 // @route GET /api/tasks
@@ -41,21 +41,33 @@ const createTask = async (req, res) => {
   const { title, description, status, assignedTo, dueDate } = req.body;
 
   try {
+    if (
+      typeof title !== 'string' ||
+      typeof description !== 'string' ||
+      !title.trim() ||
+      !description.trim()
+    ) {
+      return res.status(400).json({
+        message: 'Title and description are required and must be non-empty strings',
+      });
+    }
+
     const task = await Task.create({
-      title,
-      description,
+      title: title.trim(),
+      description: description.trim(),
       status,
       assignedTo: assignedTo || null,
       dueDate,
       createdBy: req.user._id,
     });
 
-    res.status(201).json(task);
+    return res.status(201).json(task);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({
+      message: error.message,
+    });
   }
 };
-
 // @desc  Update a task
 // @route PUT /api/tasks/:id
 // @access Admin
@@ -63,11 +75,38 @@ const updateTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ message: 'Task not found' });
+
+    const { title, description } = req.body;
+
+    if (Object.prototype.hasOwnProperty.call(req.body, 'title')) {
+      if (typeof title !== 'string' || !title.trim()) {
+        return res.status(400).json({
+          message: 'Title must be a non-empty string',
+        });
+      }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(req.body, 'description')) {
+      if (typeof description !== 'string' || !description.trim()) {
+        return res.status(400).json({
+          message: 'Description must be a non-empty string',
+        });
+      }
+    }
+
+    const updateData = { ...req.body };
+    if (updateData.title !== undefined) {
+      updateData.title = updateData.title.trim();
+    }
+    if (updateData.description !== undefined) {
+      updateData.description = updateData.description.trim();
+    }
+
     // including internal fields like createdBy or __v
     const updated = await Task.findByIdAndUpdate(
       req.params.id,
-      { ...req.body },
-      { new: true }
+      updateData,
+      { new: true, runValidators: true }
     ).populate('assignedTo', 'name email');
 
     res.json(updated);
