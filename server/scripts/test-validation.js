@@ -37,7 +37,7 @@ mockTaskModel.findById = (id) => {
   };
   return mockQuery(task);
 };
-mockTaskModel.findByIdAndUpdate = (id, update, options) => {
+mockTaskModel.findByIdAndUpdate = (id, update) => {
   const result = { _id: id, ...update };
   return mockQuery(result);
 };

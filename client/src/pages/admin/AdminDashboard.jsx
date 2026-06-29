@@ -3,7 +3,7 @@ import Sidebar from '../../components/admin/Sidebar';
 import TasksTable from '../../components/admin/TasksTable';
 import CreateTaskModal from '../../components/admin/CreateTaskModal';
 import EditTaskModal from '../../components/admin/EditTaskModal';
-import { fetchAllTasks } from '../../api/tasks';
+import { fetchAllTasks, fetchTaskStats } from '../../api/tasks';
 
 /* ── Search icon ── */
 const IconSearch = () => (
@@ -26,6 +26,12 @@ const AdminDashboard = () => {
   const [editTask, setEditTask]     = useState(null);
   const [search, setSearch]         = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [stats, setStats]           = useState({
+    totalTasks: 0,
+    openTasks: 0,
+    activeTalents: 0,
+    completedTasks: 0,
+  });
 
   const loadTasks = async () => {
     try {
@@ -36,21 +42,28 @@ const AdminDashboard = () => {
     }
   };
 
-  // eslint-disable-next-line
-  useEffect(() => { loadTasks(); }, []);
-
-  const stats = {
-    total:     tasks.length,
-    open:      tasks.filter((t) => t.status === 'Open').length,
-    submitted: tasks.filter((t) => t.status === 'Submitted').length,
-    approved:  tasks.filter((t) => t.status === 'Approved').length,
+  const loadStats = async () => {
+    try {
+      const { data } = await fetchTaskStats();
+      setStats(data);
+    } catch {
+      alert('Failed to load statistics');
+    }
   };
 
+  const refreshDashboard = () => {
+    loadTasks();
+    loadStats();
+  };
+
+  // eslint-disable-next-line
+  useEffect(() => { refreshDashboard(); }, []);
+
   const statCards = [
-    { label: 'Total Tasks', value: stats.total,     colorClass: 'stat-card-default', valueColor: '#E5E2E1' },
-    { label: 'Open',        value: stats.open,      colorClass: 'stat-card-blue',    valueColor: '#60A5FA' },
-    { label: 'Submitted',   value: stats.submitted, colorClass: 'stat-card-info',    valueColor: '#60A5FA' },
-    { label: 'Approved',    value: stats.approved,  colorClass: 'stat-card-green',   valueColor: '#34D399' },
+    { label: 'Total Tasks',     value: stats.totalTasks,     colorClass: 'stat-card-default', valueColor: '#E5E2E1' },
+    { label: 'Open Tasks',      value: stats.openTasks,      colorClass: 'stat-card-blue',    valueColor: '#60A5FA' },
+    { label: 'Active Talents',  value: stats.activeTalents,  colorClass: 'stat-card-info',    valueColor: '#60A5FA' },
+    { label: 'Completed Tasks', value: stats.completedTasks, colorClass: 'stat-card-green',   valueColor: '#34D399' },
   ];
 
   /* Filter tasks */
@@ -156,18 +169,18 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <TasksTable tasks={filteredTasks} onEdit={setEditTask} onRefresh={loadTasks} />
+          <TasksTable tasks={filteredTasks} onEdit={setEditTask} onRefresh={refreshDashboard} />
         </div>
       </main>
 
       {showCreate && (
-        <CreateTaskModal onClose={() => setShowCreate(false)} onCreated={loadTasks} />
+        <CreateTaskModal onClose={() => setShowCreate(false)} onCreated={refreshDashboard} />
       )}
       {editTask && (
         <EditTaskModal
           task={editTask}
           onClose={() => setEditTask(null)}
-          onUpdated={() => { loadTasks(); setEditTask(null); }}
+          onUpdated={() => { refreshDashboard(); setEditTask(null); }}
         />
       )}
     </div>

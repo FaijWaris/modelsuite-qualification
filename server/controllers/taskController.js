@@ -164,6 +164,27 @@ const updateTask = async (req, res) => {
   }
 };
 
+// @desc  Get task statistics
+// @route GET /api/tasks/stats
+// @access Admin
+const getTaskStats = async (req, res) => {
+  try {
+    const totalTasks = await Task.countDocuments({});
+    const openTasks = await Task.countDocuments({ status: 'Open' });
+    const completedTasks = await Task.countDocuments({ status: 'Approved' });
+    const activeTalents = await Task.distinct('assignedTo', { assignedTo: { $ne: null } });
+
+    res.json({
+      totalTasks,
+      openTasks,
+      completedTasks,
+      activeTalents: activeTalents.length,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc  Delete a task
 // @route DELETE /api/tasks/:id
 // @access Admin
@@ -180,4 +201,4 @@ const deleteTask = async (req, res) => {
   }
 };
 
-module.exports = { getAllTasks, getTaskById, createTask, updateTask, deleteTask };
+module.exports = { getAllTasks, getTaskById, createTask, updateTask, deleteTask, getTaskStats };
