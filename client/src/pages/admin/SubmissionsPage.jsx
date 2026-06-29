@@ -35,7 +35,7 @@ const SubmissionsPage = () => {
     <div className="flex min-h-screen bg-bg-dark">
       <Sidebar />
 
-      <main className="ml-60 flex-1 px-10 py-9">
+      <main className="ml-60 flex-1 px-10 py-9 min-w-0" style={{ maxWidth: 'calc(100vw - 240px)' }}>
 
         {/* Header */}
         <div className="mb-8">
