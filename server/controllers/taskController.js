@@ -1,4 +1,5 @@
 const Task = require('../models/Task');
+const User = require('../models/User');
 
 // @desc  Get all tasks
 // @route GET /api/tasks
@@ -41,6 +42,7 @@ const createTask = async (req, res) => {
   const { title, description, status, assignedTo, dueDate } = req.body;
 
   try {
+    // Validate title and description
     if (
       typeof title !== 'string' ||
       typeof description !== 'string' ||
@@ -50,6 +52,23 @@ const createTask = async (req, res) => {
       return res.status(400).json({
         message: 'Title and description are required and must be non-empty strings',
       });
+    }
+
+    // Validate assigned user
+    if (assignedTo) {
+      const user = await User.findById(assignedTo);
+
+      if (!user) {
+        return res.status(404).json({
+          message: 'Assigned user not found',
+        });
+      }
+
+      if (user.role === 'Admin') {
+        return res.status(400).json({
+          message: 'Tasks can only be assigned to Talent users',
+        });
+      }
     }
 
     const task = await Task.create({
@@ -74,10 +93,16 @@ const createTask = async (req, res) => {
 const updateTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
-    if (!task) return res.status(404).json({ message: 'Task not found' });
 
-    const { title, description } = req.body;
+    if (!task) {
+      return res.status(404).json({
+        message: 'Task not found',
+      });
+    }
 
+    const { title, description, assignedTo } = req.body;
+
+    // Validate title
     if (Object.prototype.hasOwnProperty.call(req.body, 'title')) {
       if (typeof title !== 'string' || !title.trim()) {
         return res.status(400).json({
@@ -86,6 +111,7 @@ const updateTask = async (req, res) => {
       }
     }
 
+    // Validate description
     if (Object.prototype.hasOwnProperty.call(req.body, 'description')) {
       if (typeof description !== 'string' || !description.trim()) {
         return res.status(400).json({
@@ -94,24 +120,47 @@ const updateTask = async (req, res) => {
       }
     }
 
+    // Validate assigned user
+    if (assignedTo) {
+      const user = await User.findById(assignedTo);
+
+      if (!user) {
+        return res.status(404).json({
+          message: 'Assigned user not found',
+        });
+      }
+
+      if (user.role === 'Admin') {
+        return res.status(400).json({
+          message: 'Tasks can only be assigned to Talent users',
+        });
+      }
+    }
+
     const updateData = { ...req.body };
+
     if (updateData.title !== undefined) {
       updateData.title = updateData.title.trim();
     }
+
     if (updateData.description !== undefined) {
       updateData.description = updateData.description.trim();
     }
 
-    // including internal fields like createdBy or __v
     const updated = await Task.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { new: true, runValidators: true }
+      {
+        new: true,
+        runValidators: true,
+      }
     ).populate('assignedTo', 'name email');
 
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({
+      message: error.message,
+    });
   }
 };
 
